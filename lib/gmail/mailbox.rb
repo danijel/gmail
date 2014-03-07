@@ -95,6 +95,8 @@ module Gmail
       @size = value
     end
 
+    # Initialy this is size received after selecting the mailbox
+    # if you need to get size of mailbox after being logged for some time, use count
     def size
       @size
     end

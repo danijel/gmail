@@ -18,6 +18,15 @@ describe "A Gmail mailbox" do
         mailbox.name.should == "INBOX"
       end
     end
+
+    it "should have size upon selelecting INBOX by default" do
+      within_gmail do |gmail|
+        mailbox = subject.new(@gmail)
+        gmail.inbox.size.should_not be_nil
+        gmail.inbox.size.should > 0
+      end
+    end
+
   end
 
   context "instance" do
