@@ -7,10 +7,18 @@ module Gmail
   
     attr_reader :uid
     
-    def initialize(mailbox, uid)
+    def initialize(mailbox, uid, options={})
       @uid     = uid
       @mailbox = mailbox
       @gmail   = mailbox.instance_variable_get("@gmail") if mailbox
+      @message = Mail.new options[:message]
+      @envelope = options[:envelope]
+      @labels = options[:labels]
+      @thread_id = options[:thread_id]
+      @msg_id = options[:msg_id]
+      @size = options[:size]
+      @flags = options[:flags]
+      @header = options[:header]
     end
     
     ###
@@ -30,6 +38,7 @@ module Gmail
     end
    
     def uid
+      puts "getting uid #{@uid.inspect}"
       @uid ||= fetch_email_data.attr("UID")
     end
     
@@ -163,23 +172,52 @@ module Gmail
       end
     end
 
+    def size
+      @size ||= @gmail.mailbox(@mailbox.name) {
+        fetch_email_data.attr["RFC822.SIZE"]
+      }
+    end
+
     def envelope
+      puts "getting envelope #{@envelope.inspect}"
       @envelope ||= @gmail.mailbox(@mailbox.name) {
         fetch_email_data.attr["ENVELOPE"]
+      }
+    end
+
+    def header
+      @header  ||= @gmail.mailbox(@mailbox.name) {
+        fetch_email_data.attr("BODY[HEADER]")
+      }
+    end
+
+    def flags
+      @flags ||= @gmail.mailbox(@mailbox.name) {
+        fetch_email_data.attr["FLAGS"]
       }
     end
     
     def message
       @message ||= Mail.new(@gmail.mailbox(@mailbox.name) { 
-        fetch_email_data.attr["RFC822"] # RFC822
+        fetch_email_data.attr["BODY[]"] # instead RFC822, does not mark as read
       })
     end
     alias_method :raw_message, :message
 
+    # true if message is marked as read
+    def read?
+      return flags.include? :Seen
+    end
+    
+    # true if message is starred
+    def starred?
+      return flags.include? :Flagged
+    end
+
     protected 
     # Just one request to fetch all the data we need
     def fetch_email_data
-      @email_data ||= @gmail.conn.uid_fetch(uid, ["RFC822", 'ENVELOPE', 'X-GM-LABELS', 'X-GM-THRID'])[0]
+      @email_data ||= @gmail.conn.uid_fetch(uid, ['BODY.PEEK[]', 'BODY.PEEK[HEADER]', 'FLAGS', 'ENVELOPE', 'RFC822.SIZE', 'X-GM-LABELS', 'X-GM-THRID'])[0]
     end
   end # Message
 end # Gmail

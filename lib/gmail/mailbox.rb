@@ -57,6 +57,7 @@ module Gmail
         opts[:attachment] and search.concat ['HAS', 'attachment']
         opts[:search]     and search.concat ['BODY', opts[:search]]
         opts[:body]       and search.concat ['BODY', opts[:body]]
+        opts[:message_id] and search.concat ['HEADER','MESSAGE-ID', opts[:message_id]]
         opts[:query]      and search.concat opts[:query]
 
         @gmail.mailbox(name) do
@@ -87,7 +88,15 @@ module Gmail
     #   gmail.inbox.count(:unread, :from => "friend@gmail.com")
     #   gmail.mailbox("Test").count(:all, :after => Time.now-(20*24*3600))
     def count(*args)
-      emails(*args).size
+      @size = emails(*args).size
+    end
+
+    def size=(value)
+      @size = value
+    end
+
+    def size
+      @size
     end
 
     # This permanently removes messages which are marked as deleted
@@ -113,5 +122,55 @@ module Gmail
         emails(mailbox, *args, &block)
       end
     }
+
+    def emails_by_seqno(search)
+      @gmail.mailbox(name) do
+        @gmail.conn.uid_search(search).collect do |uid| 
+          message = (messages[uid] ||= Message.new(self, uid))
+          message
+        end
+      end  
+    end
+    
+    # Fetches list of emails which meets given range criteria. 
+    #
+    # ==== Examples
+    #
+    #   gmail.inbox.fetch(1..50) # fetches message 1 to 30
+    #   gmail.inbox.fetch(30) # fetches last 30 messages
+    #
+    #   gmail.mailbox("Test") do |box| 
+    #     box.fetch(50) do |email|
+    #       ... do something with each email...
+    #     end
+    #   end
+    #
+    #   start = gmail.inbox.count - 50
+    #   gmail.inbox.fetch([start, 1].max..-1) # Fetch last 50 items in inbox
+    #
+    def fetch(range, &block)
+      search = [ 'UID', 'ENVELOPE', 'FLAGS' ]
+      @gmail.mailbox(name) do
+        list = @gmail.conn.fetch(range, "(#{search.join(' ')})") || []
+
+        list.collect do |msg|
+          uid = msg.attr['UID']
+          envelope = msg.attr['ENVELOPE']
+          flags = msg.attr['FLAGS']       
+          # Message.new(self, msg.attr["UID"], message: msg.attr["RFC822"],
+                                               # envelope: msg.attr["ENVELOPE"],
+                                               # labels: msg.attr["X-GM-LABELS"],
+                                               # thread_id: msg.attr["X-GM-THRID"],
+                                               # msg_id: msg.attr["X-GM-MSGID"])
+
+          binding.pry
+          message = (messages[uid] ||= Message.new(self, uid, :envelope => envelope, :flags =>flags))
+          binding.pry
+          block.call(message) if block_given?
+          message
+        end
+      end
+    end
+  
   end # Message
 end # Gmail

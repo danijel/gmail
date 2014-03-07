@@ -156,7 +156,10 @@ module Gmail
         @mailbox_mutex.synchronize do
           name = name.to_s
           mailbox = (mailboxes[name] ||= Mailbox.new(self, name))
-          switch_to_mailbox(name) if @current_mailbox != name
+          if @current_mailbox != name
+            switch_to_mailbox(name)
+            mailbox.size = @current_mailbox_size
+          end
 
           if block_given?
             mailbox_stack << @current_mailbox
@@ -201,6 +204,7 @@ module Gmail
         if mailbox
           mailbox = Net::IMAP.encode_utf7(mailbox)
           conn.select(mailbox)
+          @current_mailbox_size = conn.responses["EXISTS"][0]
         end
         @current_mailbox = mailbox
       end
