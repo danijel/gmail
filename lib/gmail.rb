@@ -10,7 +10,7 @@ end
 
 class Object
   def to_imap_date
-    Date.parse(to_s).strftime("%d-%B-%Y")
+    Date.parse(respond_to?(:utc) ? utc.to_s : to_s).strftime("%d-%B-%Y")
   end
 end
 
