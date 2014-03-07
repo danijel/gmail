@@ -24,8 +24,22 @@ module Gmail
           :token           => token,
           :token_secret    => secret
         )) && login.name == 'OK'
-      rescue
-        raise_errors and raise AuthorizationError, "Couldn't login to given GMail account: #{username}"        
+      rescue Net::IMAP::NoResponseError => e
+        raise_errors and raise AuthorizationError.new(e.response), "Couldn't login to given GMail account: #{username}", e.backtrace
+      rescue => e
+        raise_errors and raise AuthorizationError.new(nil), "Couldn't login to given GMail account: #{username}", e.backtrace
+      end
+
+      def access_token
+        consumer_options = {
+          :site               => "https://www.google.com",
+          :request_token_path => "/accounts/OAuthGetRequestToken",
+          :authorize_path     => "/accounts/OAuthAuthorizeToken",
+          :access_token_path  => "/accounts/OAuthGetAccessToken"
+        }
+        consumer = OAuth::Consumer.new(consumer_key, consumer_secret, consumer_options)
+        @access_token ||= OAuth::AccessToken.new(consumer, token, secret)
+        @access_token
       end
 
       def smtp_settings
@@ -38,14 +52,13 @@ module Gmail
              :consumer_key    => consumer_key,
              :consumer_secret => consumer_secret,
              :token           => token,
-             :token_secret    => secret
+             :token_secret    => secret,
+             :access_token    => access_token
            },
            :authentication => :xoauth,
            :enable_starttls_auto => true
          }]
       end
     end # XOAuth
-
-    register :xoauth, XOAuth
   end # Client
 end # Gmail

@@ -25,5 +25,14 @@ def mock_mailbox(box="INBOX", &block)
   end
 end
 
+def mock_client(&block)
+  client = Gmail::Client::Plain.new(*TEST_ACCOUNT)
+  if block_given?
+    client.connect
+    yield client
+    client.logout
+  end
+  client
+end
 # Run test by creating your own test account with credentials in account.yml
 TEST_ACCOUNT = YAML.load_file(File.join(File.dirname(__FILE__), 'account.yml'))
