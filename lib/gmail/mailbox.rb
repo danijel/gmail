@@ -165,9 +165,7 @@ module Gmail
                                                # thread_id: msg.attr["X-GM-THRID"],
                                                # msg_id: msg.attr["X-GM-MSGID"])
 
-          binding.pry
           message = (messages[uid] ||= Message.new(self, uid, :envelope => envelope, :flags =>flags))
-          binding.pry
           block.call(message) if block_given?
           message
         end

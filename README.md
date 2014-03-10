@@ -1,3 +1,8 @@
+This is custom version to get mailbox size on mailbox selection response,
+In my case I use this to fork to get message envelopes in short login sessions.
+Fully email is only fetched when requested by uid, mails are marked as read only by setting the read flag,
+otherwise, BODY.PEEK is used. 
+
 # GMail for Ruby
 
 A Rubyesque interface to Google's GMail, with all the tools you'll need. Search, 
