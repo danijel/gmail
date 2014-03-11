@@ -32,7 +32,7 @@ module Gmail
     end
    
     def uid
-      puts "getting uid #{@uid.inspect}"
+      # puts "getting uid #{@uid.inspect}"
       @uid ||= fetch_email_data.attr("UID")
     end
     
@@ -181,7 +181,7 @@ module Gmail
     end
 
     def envelope
-      puts "getting envelope #{@envelope.inspect}"
+      # puts "getting envelope #{@envelope.inspect}"
       @envelope ||= fetch_email_data.attr["ENVELOPE"]
     end
 
@@ -190,7 +190,7 @@ module Gmail
     end
     
     def message
-      puts "message #{@message.inspect}"
+      # puts "message #{@message.inspect}"
       @message ||= Mail.new(fetch_email_data.attr["BODY[]"]) # instead RFC822, does not mark as read
     end
     alias_method :raw_message, :message
