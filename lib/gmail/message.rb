@@ -5,20 +5,14 @@ module Gmail
     # Raised when given label doesn't exists.
     class NoLabelError < Exception; end 
   
-    attr_reader :uid
+    attr_reader :uid, :envelope, :message, :flags, :labels
     
     def initialize(mailbox, uid, options={})
       @uid     = uid
       @mailbox = mailbox
       @gmail   = mailbox.instance_variable_get("@gmail") if mailbox
-      @message = Mail.new options[:message]
       @envelope = options[:envelope]
-      @labels = options[:labels]
-      @thread_id = options[:thread_id]
-      @msg_id = options[:msg_id]
-      @size = options[:size]
       @flags = options[:flags]
-      @header = options[:header]
     end
     
     ###
@@ -87,6 +81,16 @@ module Gmail
     # Remove message from list of starred.
     def unstar!
       unflag('[Gmail]/Starred')
+    end
+
+    # true if message is marked as read
+    def read?
+      return flags.include? :Seen
+    end
+    
+    # true if message is starred
+    def starred?
+      return flags.include? :Flagged
     end
     
     # Move to trash / bin.
@@ -173,51 +177,30 @@ module Gmail
     end
 
     def size
-      @size ||= @gmail.mailbox(@mailbox.name) {
-        fetch_email_data.attr["RFC822.SIZE"]
-      }
+      @size ||= fetch_email_data.attr["RFC822.SIZE"]
     end
 
     def envelope
       puts "getting envelope #{@envelope.inspect}"
-      @envelope ||= @gmail.mailbox(@mailbox.name) {
-        fetch_email_data.attr["ENVELOPE"]
-      }
-    end
-
-    def header
-      @header  ||= @gmail.mailbox(@mailbox.name) {
-        fetch_email_data.attr("BODY[HEADER]")
-      }
+      @envelope ||= fetch_email_data.attr["ENVELOPE"]
     end
 
     def flags
-      @flags ||= @gmail.mailbox(@mailbox.name) {
-        fetch_email_data.attr["FLAGS"]
-      }
+      @flags ||= fetch_email_data.attr["FLAGS"]
     end
     
     def message
-      @message ||= Mail.new(@gmail.mailbox(@mailbox.name) { 
-        fetch_email_data.attr["BODY[]"] # instead RFC822, does not mark as read
-      })
+      puts "message #{@message.inspect}"
+      @message ||= Mail.new(fetch_email_data.attr["BODY[]"]) # instead RFC822, does not mark as read
     end
     alias_method :raw_message, :message
 
-    # true if message is marked as read
-    def read?
-      return flags.include? :Seen
-    end
     
-    # true if message is starred
-    def starred?
-      return flags.include? :Flagged
-    end
 
     protected 
     # Just one request to fetch all the data we need
     def fetch_email_data
-      @email_data ||= @gmail.conn.uid_fetch(uid, ['BODY.PEEK[]', 'BODY.PEEK[HEADER]', 'FLAGS', 'ENVELOPE', 'RFC822.SIZE', 'X-GM-LABELS', 'X-GM-THRID'])[0]
+      @email_data ||= @gmail.conn.uid_fetch(uid, ['BODY.PEEK[]', 'FLAGS', 'ENVELOPE', 'RFC822.SIZE', 'X-GM-LABELS', 'X-GM-THRID'])[0]
     end
   end # Message
 end # Gmail
