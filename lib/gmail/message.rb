@@ -13,6 +13,7 @@ module Gmail
       @gmail   = mailbox.instance_variable_get("@gmail") if mailbox
       @envelope = options[:envelope]
       @flags = options[:flags]
+      @msg_id = options[:msg_id]
     end
     
     ###
@@ -29,6 +30,10 @@ module Gmail
     #
     def thread_id
       fetch_email_data.attr["X-GM-THRID"]
+    end
+
+    def msg_id
+      @msg_id ||= fetch_email_data.attr["X-GM-MSGID"]
     end
    
     def uid
@@ -200,7 +205,7 @@ module Gmail
     protected 
     # Just one request to fetch all the data we need
     def fetch_email_data
-      @email_data ||= @gmail.conn.uid_fetch(uid, ['BODY.PEEK[]', 'FLAGS', 'ENVELOPE', 'RFC822.SIZE', 'X-GM-LABELS', 'X-GM-THRID'])[0]
+      @email_data ||= @gmail.conn.uid_fetch(uid, ['BODY.PEEK[]', 'FLAGS', 'ENVELOPE', 'RFC822.SIZE', 'X-GM-LABELS', 'X-GM-THRID', 'X-GM-MSGID'])[0]
     end
   end # Message
 end # Gmail

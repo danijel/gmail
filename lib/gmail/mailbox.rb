@@ -58,6 +58,8 @@ module Gmail
         opts[:search]     and search.concat ['BODY', opts[:search]]
         opts[:body]       and search.concat ['BODY', opts[:body]]
         opts[:message_id] and search.concat ['HEADER','MESSAGE-ID', opts[:message_id]]
+        opts[:msg_id]     and search.concat ['X-GM-MSGID', opts[:msg_id].to_s]
+        opts[:thread_id]  and search.concat ['X-GM-THRID', opts[:thread_id].to_s]
         opts[:query]      and search.concat opts[:query]
 
         @gmail.mailbox(name) do
@@ -158,14 +160,15 @@ module Gmail
         list.collect do |msg|
           uid = msg.attr['UID']
           envelope = msg.attr['ENVELOPE']
-          flags = msg.attr['FLAGS']       
+          flags = msg.attr['FLAGS']
+          msg_id = msg.attr['X-GM-MSGID']
           # Message.new(self, msg.attr["UID"], message: msg.attr["RFC822"],
                                                # envelope: msg.attr["ENVELOPE"],
                                                # labels: msg.attr["X-GM-LABELS"],
                                                # thread_id: msg.attr["X-GM-THRID"],
                                                # msg_id: msg.attr["X-GM-MSGID"])
 
-          message = (messages[uid] ||= Message.new(self, uid, :envelope => envelope, :flags =>flags))
+          message = (messages[uid] ||= Message.new(self, uid, :envelope => envelope, :flags => flags, :msg_id => msg_id ))
           block.call(message) if block_given?
           message
         end
